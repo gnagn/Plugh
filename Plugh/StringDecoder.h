@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include "StoryMemory.h"
 
 class StringDecoder
 {
@@ -11,17 +12,18 @@ class StringDecoder
 	typedef std::uint8_t byte;
 
 public:
-	StringDecoder(byte version);
+	StringDecoder(byte version, const StoryMemory& sm);
 	~StringDecoder();
 
-	std::string DecodeString(const std::vector<word>& encodedString);
+	std::string DecodeString(int stringAddress) const;
+	std::string GetAbbrev(int abbrevTableNum, byte abbrevNum) const;
 
 private:
 	const byte version_;
+	const StoryMemory& storyMemory_;
+
 	static const char* alphabetTable;
 
-	std::string decodedString_;
-	
 	static std::vector<byte> extractChars(const std::vector<word>& encodedString);
 
 	enum State
@@ -35,7 +37,6 @@ private:
 		READ_ABBREV_2,
 		READ_ABBREV_3,
 	};
-	State currentState_;
 
 	enum Input
 	{
@@ -54,11 +55,13 @@ private:
 		A2
 	};
 
-	std::map<std::pair<State, byte>, std::pair<State, std::function<void(byte)>>> stateMap;
-	std::map<State, std::pair<State, std::function<void(byte)>>> stateDefaultsMap;
+	std::map<std::pair<State, byte>, std::pair<State, std::function<std::string(byte)>>> stateMap;
+	std::map<State, std::pair<State, std::function<std::string(byte)>>> stateDefaultsMap;
 
-	void writeLetter(Alphabet alphabet, byte letter);
-	void skip(byte letter) { return; }
-	void readAbbrev(int whichTable, byte whichAbbrev);
+	static std::string writeLetter(Alphabet alphabet, byte letter);
+	static std::string skip(byte letter) { return ""; }
+	std::string readAbbrev(int whichTable, byte whichAbbrev) const;
+	static const StoryMemory::story_pointer ADD_ABBREVS_TABLE_LOC = 0x18;
+	StoryMemory::story_pointer getAbbrevsTablePointer() const { return storyMemory_.GetAddressAt(ADD_ABBREVS_TABLE_LOC); }
 };
 

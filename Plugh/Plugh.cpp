@@ -7,6 +7,7 @@
 int main()
 {
 	Story s("minizork.z3");
-    return 0;
+	//Story s("ZORK1.DAT");
+	return 0;
 }
 

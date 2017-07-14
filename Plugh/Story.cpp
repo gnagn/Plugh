@@ -6,16 +6,21 @@
 
 Story::Story(std::string filename)
 	:storyMemory(filename),
-	stringDecoder(getStoryVersion())
+	stringDecoder(getStoryVersion(), storyMemory)
 {
 	std::cout << static_cast<int>(getStoryVersion()) << "\n";
 	for (auto i = 1; i < 4; i++)
 	{
 		for (auto j = 0; j < 32; j++)
 		{
-			std::cout << getAbbrev(i, j) << "\n";
+			std::cout << getAbbrev(i, j) << ".\n";
 		}
 	}
+
+
+	StringDecoder sd(getStoryVersion(), storyMemory);
+	std::cout << sd.DecodeString(0xb106);
+
 	int bar;
 	std::cin >> bar;
 }
@@ -32,8 +37,9 @@ std::string Story::getAbbrev(int abbrevTableNum, int abbrevNum) const
 	auto abbrevStringPointer = storyMemory.GetAddressAt(abbrevTable + abbrevOffest) * 2;
 	auto encodedString = storyMemory.GetWordsUntil(abbrevStringPointer, ([](StoryMemory::word w) { return (w & 0x8000) == 0 ? false : true; }));
 
-	StringDecoder sd(getStoryVersion());
-	return sd.DecodeString(encodedString);
+	StringDecoder sd(getStoryVersion(), storyMemory);
+	//return sd.DecodeString(abbrevStringPointer);
+	return sd.GetAbbrev(abbrevTableNum, abbrevNum);
 }
 
 //Story::story_pointer Story::getPackedAddress(int value, Story::PackedAddressType type) const
