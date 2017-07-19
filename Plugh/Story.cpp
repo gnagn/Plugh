@@ -18,7 +18,7 @@ Story::Story(std::string filename)
 	}
 
 
-	StringDecoder sd(getStoryVersion(), storyMemory);
+	StringDecoder::Decoder sd(getStoryVersion(), storyMemory);
 	std::cout << sd.DecodeString(0xb106);
 
 	int bar;
@@ -37,7 +37,7 @@ std::string Story::getAbbrev(int abbrevTableNum, int abbrevNum) const
 	auto abbrevStringPointer = storyMemory.GetAddressAt(abbrevTable + abbrevOffest) * 2;
 	auto encodedString = storyMemory.GetWordsUntil(abbrevStringPointer, ([](StoryMemory::word w) { return (w & 0x8000) == 0 ? false : true; }));
 
-	StringDecoder sd(getStoryVersion(), storyMemory);
+	StringDecoder::Decoder sd(getStoryVersion(), storyMemory);
 	//return sd.DecodeString(abbrevStringPointer);
 	return sd.GetAbbrev(abbrevTableNum, abbrevNum);
 }

@@ -48,7 +48,7 @@ private:
 
 	StoryMemory::byte getStoryVersion() const { return storyMemory.GetByte(ADD_VERSION); }
 	StoryMemory::story_pointer getAbbrevsTablePointer() const { return storyMemory.GetAddressAt(ADD_ABBREVS_TABLE_LOC); }
-	StringDecoder stringDecoder;
+	StringDecoder::Decoder stringDecoder;
 
 	std::string getAbbrev(int abbrevTableNum, int abbrevNum) const;
 

@@ -6,25 +6,10 @@
 #include <functional>
 #include "StoryMemory.h"
 
-class StringDecoder
+namespace StringDecoder
 {
 	typedef std::uint16_t word;
 	typedef std::uint8_t byte;
-
-public:
-	StringDecoder(byte version, const StoryMemory& sm);
-	~StringDecoder();
-
-	std::string DecodeString(int stringAddress) const;
-	std::string GetAbbrev(int abbrevTableNum, byte abbrevNum) const;
-
-private:
-	const byte version_;
-	const StoryMemory& storyMemory_;
-
-	static const char* alphabetTable;
-
-	static std::vector<byte> extractChars(const std::vector<word>& encodedString);
 
 	enum State
 	{
@@ -55,13 +40,48 @@ private:
 		A2
 	};
 
-	std::map<std::pair<State, byte>, std::pair<State, std::function<std::string(byte)>>> stateMap;
-	std::map<State, std::pair<State, std::function<std::string(byte)>>> stateDefaultsMap;
 
-	static std::string writeLetter(Alphabet alphabet, byte letter);
-	static std::string skip(byte letter) { return ""; }
-	std::string readAbbrev(int whichTable, byte whichAbbrev) const;
-	static const StoryMemory::story_pointer ADD_ABBREVS_TABLE_LOC = 0x18;
-	StoryMemory::story_pointer getAbbrevsTablePointer() const { return storyMemory_.GetAddressAt(ADD_ABBREVS_TABLE_LOC); }
-};
+	struct StateKey
+	{
+		State currentState;
+		byte inputState;
+	};
 
+	inline bool operator<(const StateKey& lh, const StateKey& rh) {
+		return lh.currentState < rh.currentState || (lh.currentState == rh.currentState && lh.inputState < rh.inputState);
+	}
+
+	struct StateResult
+	{
+		State newState;
+		std::function<std::string(byte)> stateFunction;
+	};
+
+	class Decoder
+	{
+	public:
+		Decoder(byte version, const StoryMemory& sm);
+		~Decoder();
+
+		std::string DecodeString(int stringAddress) const;
+		std::string GetAbbrev(int abbrevTableNum, byte abbrevNum) const;
+
+	private:
+		const byte version_;
+		const StoryMemory& storyMemory_;
+
+		static const char* alphabetTable;
+
+		static std::vector<byte> extractChars(const std::vector<word>& encodedString);
+
+		std::map<StateKey, StateResult> stateMap;
+		std::map<State, StateResult> stateDefaultsMap;
+
+		static std::string writeLetter(Alphabet alphabet, byte letter);
+		static std::string skip(byte letter) { return ""; }
+		std::string readAbbrev(int whichTable, byte whichAbbrev) const;
+		static const StoryMemory::story_pointer ADD_ABBREVS_TABLE_LOC = 0x18;
+		StoryMemory::story_pointer getAbbrevsTablePointer() const { return storyMemory_.GetAddressAt(ADD_ABBREVS_TABLE_LOC); }
+	};
+
+}

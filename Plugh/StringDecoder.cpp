@@ -1,49 +1,52 @@
 #include "stdafx.h"
 #include "StringDecoder.h"
 #include "util.h"
+#include <boost/format.hpp>
 
-StringDecoder::StringDecoder(byte version, const StoryMemory& sm)
+using namespace StringDecoder;
+
+Decoder::Decoder(byte version, const StoryMemory& sm)
 	: version_(version)
 	, storyMemory_(sm)
 {
 	using namespace std::placeholders;
 
-	stateMap[std::make_pair(State::READ_A0, Input::ABBREV_1)] = std::make_pair(State::READ_ABBREV_1, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A0, Input::ABBREV_2)] = std::make_pair(State::READ_ABBREV_2, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A0, Input::ABBREV_3)] = std::make_pair(State::READ_ABBREV_3, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A0, Input::SHIFT_A1)] = std::make_pair(State::READ_A1, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A0, Input::SHIFT_A2)] = std::make_pair(State::READ_A2, &StringDecoder::skip);
+	stateMap[StateKey{ State::READ_A0, Input::ABBREV_1 }] = StateResult{ State::READ_ABBREV_1, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A0, Input::ABBREV_2 }] = StateResult{ State::READ_ABBREV_2, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A0, Input::ABBREV_3 }] = StateResult{ State::READ_ABBREV_3, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A0, Input::SHIFT_A1 }] = StateResult{ State::READ_A1, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A0, Input::SHIFT_A2 }] = StateResult{ State::READ_A2, &Decoder::skip };
 
-	stateMap[std::make_pair(State::READ_A1, Input::ABBREV_1)] = std::make_pair(State::READ_ABBREV_1, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A1, Input::ABBREV_2)] = std::make_pair(State::READ_ABBREV_2, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A1, Input::ABBREV_3)] = std::make_pair(State::READ_ABBREV_3, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A1, Input::SHIFT_A1)] = std::make_pair(State::READ_A1, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A1, Input::SHIFT_A2)] = std::make_pair(State::READ_A2, &StringDecoder::skip);
+	stateMap[StateKey{ State::READ_A1, Input::ABBREV_1 }] = StateResult{ State::READ_ABBREV_1, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A1, Input::ABBREV_2 }] = StateResult{ State::READ_ABBREV_2, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A1, Input::ABBREV_3 }] = StateResult{ State::READ_ABBREV_3, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A1, Input::SHIFT_A1 }] = StateResult{ State::READ_A1, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A1, Input::SHIFT_A2 }] = StateResult{ State::READ_A2, &Decoder::skip };
 
-	stateMap[std::make_pair(State::READ_A2, Input::ABBREV_1)] = std::make_pair(State::READ_ABBREV_1, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A2, Input::ABBREV_2)] = std::make_pair(State::READ_ABBREV_2, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A2, Input::ABBREV_3)] = std::make_pair(State::READ_ABBREV_3, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A2, Input::SHIFT_A1)] = std::make_pair(State::READ_A1, &StringDecoder::skip);
-	stateMap[std::make_pair(State::READ_A2, Input::SHIFT_A2)] = std::make_pair(State::READ_A2, &StringDecoder::skip);
+	stateMap[StateKey{ State::READ_A2, Input::ABBREV_1 }] = StateResult{ State::READ_ABBREV_1, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A2, Input::ABBREV_2 }] = StateResult{ State::READ_ABBREV_2, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A2, Input::ABBREV_3 }] = StateResult{ State::READ_ABBREV_3, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A2, Input::SHIFT_A1 }] = StateResult{ State::READ_A1, &Decoder::skip };
+	stateMap[StateKey{ State::READ_A2, Input::SHIFT_A2 }] = StateResult{ State::READ_A2, &Decoder::skip };
 
-	stateDefaultsMap[State::READ_ABBREV_1] = std::make_pair(State::READ_A0, std::bind(&StringDecoder::readAbbrev, this, 1, _1));
-	stateDefaultsMap[State::READ_ABBREV_2] = std::make_pair(State::READ_A0, std::bind(&StringDecoder::readAbbrev, this, 2, _1));
-	stateDefaultsMap[State::READ_ABBREV_3] = std::make_pair(State::READ_A0, std::bind(&StringDecoder::readAbbrev, this, 3, _1));
+	stateDefaultsMap[State::READ_ABBREV_1] = StateResult{ State::READ_A0, std::bind(&Decoder::readAbbrev, this, 1, _1) };
+	stateDefaultsMap[State::READ_ABBREV_2] = StateResult{ State::READ_A0, std::bind(&Decoder::readAbbrev, this, 2, _1) };
+	stateDefaultsMap[State::READ_ABBREV_3] = StateResult{ State::READ_A0, std::bind(&Decoder::readAbbrev, this, 3, _1) };
 
-	stateDefaultsMap[State::READ_A0] = std::make_pair(State::READ_A0, std::bind(&StringDecoder::writeLetter, Alphabet::A0, _1));
-	stateDefaultsMap[State::READ_A1] = std::make_pair(State::READ_A0, std::bind(&StringDecoder::writeLetter, Alphabet::A1, _1));
-	stateDefaultsMap[State::READ_A2] = std::make_pair(State::READ_A0, std::bind(&StringDecoder::writeLetter, Alphabet::A2, _1));
+	stateDefaultsMap[State::READ_A0] = StateResult{ State::READ_A0, std::bind(&Decoder::writeLetter, Alphabet::A0, _1) };
+	stateDefaultsMap[State::READ_A1] = StateResult{ State::READ_A0, std::bind(&Decoder::writeLetter, Alphabet::A1, _1) };
+	stateDefaultsMap[State::READ_A2] = StateResult{ State::READ_A0, std::bind(&Decoder::writeLetter, Alphabet::A2, _1) };
 
 }
 
 
-StringDecoder::~StringDecoder()
+Decoder::~Decoder()
 {
 }
 
-const char* StringDecoder::alphabetTable("      abcdefghijklmnopqrstuvwxyz      ABCDEFGHIJKLMNOPQRSTUVWXYZ       \n0123456789.,!?_#'\" / \\ - :()");
+const char* Decoder::alphabetTable("      abcdefghijklmnopqrstuvwxyz      ABCDEFGHIJKLMNOPQRSTUVWXYZ       \n0123456789.,!?_#'\" / \\ - :()");
 
-std::string StringDecoder::DecodeString(int stringAddress) const
+std::string Decoder::DecodeString(int stringAddress) const
 {
 	auto encodedString = storyMemory_.GetWordsUntil(stringAddress, ([](StoryMemory::word w) { return (w & 0x8000) == 0 ? false : true; }));
 
@@ -53,27 +56,27 @@ std::string StringDecoder::DecodeString(int stringAddress) const
 
 	for (auto c : encodedChars)
 	{
-		auto newState = stateMap.find(std::make_pair(currentState, c));
+		const auto newState = stateMap.find(StateKey{ currentState, c });
 		if (newState == stateMap.end())
 		{
 			auto defaultState = stateDefaultsMap.find(currentState);
 			if (defaultState == stateDefaultsMap.end())
 			{
-				throw std::exception("Invalid State");
+				throw std::runtime_error((boost::format("%1%(%2%): Invalid state provided. Current state: %3% -- New state: %4%") % __FILE__ % __LINE__ % currentState % (int)c).str());
 			}
-			decodedString += defaultState->second.second(c);
-			currentState = defaultState->second.first;
+			decodedString += defaultState->second.stateFunction(c);
+			currentState = defaultState->second.newState;
 		}
 		else {
-			decodedString += newState->second.second(c);
-			currentState = newState->second.first;
+			decodedString += newState->second.stateFunction(c);
+			currentState = newState->second.newState;
 		}
 	}
 
 	return decodedString;
 }
 
-std::string StringDecoder::GetAbbrev(int abbrevTableNum, byte abbrevNum) const
+std::string Decoder::GetAbbrev(int abbrevTableNum, byte abbrevNum) const
 {
 	auto abbrevTable = getAbbrevsTablePointer();
 	auto abbrevOffest = (32 * (abbrevTableNum - 1) + abbrevNum) * 2;
@@ -83,7 +86,7 @@ std::string StringDecoder::GetAbbrev(int abbrevTableNum, byte abbrevNum) const
 	return DecodeString(abbrevStringPointer);
 }
 
-std::vector<StringDecoder::byte> StringDecoder::extractChars(const std::vector<word>& encodedString)
+std::vector<byte> Decoder::extractChars(const std::vector<word>& encodedString)
 {
 	std::vector<byte> outChars;
 	for (auto curWord : encodedString)
@@ -96,7 +99,7 @@ std::vector<StringDecoder::byte> StringDecoder::extractChars(const std::vector<w
 	return outChars;
 }
 
-std::string StringDecoder::writeLetter(Alphabet alphabet, byte letter) 
+std::string Decoder::writeLetter(Alphabet alphabet, byte letter) 
 {
 	int offset = 0;
 	switch (alphabet)
@@ -113,7 +116,7 @@ std::string StringDecoder::writeLetter(Alphabet alphabet, byte letter)
 	return std::string(alphabetTable + offset + letter, 1);
 }
 
-std::string StringDecoder::readAbbrev(int whichTable, byte whichAbbrev) const
+std::string Decoder::readAbbrev(int whichTable, byte whichAbbrev) const
 {
 	return GetAbbrev(whichTable, whichAbbrev);
 }
