@@ -37,3 +37,17 @@ private:
 
 };
 
+class StoryCursor
+{
+public:
+	StoryCursor(const StoryMemory& storyMemory, int initialPos)
+		:storyMemory_(storyMemory)
+		, pos_(initialPos) {}
+
+	StoryMemory::byte NextByte();
+	StoryMemory::word NextWord();
+private:
+	const StoryMemory& storyMemory_;
+	int pos_;
+};
+

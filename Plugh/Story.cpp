@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Story.h"
 #include "StringDecoder.h"
+#include "Dictionary.h"
 #include <iostream>
 
 
@@ -21,6 +22,11 @@ Story::Story(std::string filename)
 	StringDecoder::Decoder sd(getStoryVersion(), storyMemory);
 	std::cout << sd.DecodeString(0xb106);
 
+	Dictionary dict(getStoryVersion(), storyMemory);
+	for (auto i = 0; i < 100; i++)
+	{
+		std::cout << dict.GetEntry(i) << ".\n";
+	}
 	int bar;
 	std::cin >> bar;
 }

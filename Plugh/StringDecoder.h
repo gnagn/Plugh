@@ -64,6 +64,7 @@ namespace StringDecoder
 		~Decoder();
 
 		std::string DecodeString(int stringAddress) const;
+		std::string DecodeString(const std::vector<StringDecoder::word>& rawString) const;
 		std::string GetAbbrev(int abbrevTableNum, byte abbrevNum) const;
 
 	private:
@@ -80,6 +81,10 @@ namespace StringDecoder
 		static std::string writeLetter(Alphabet alphabet, byte letter);
 		static std::string skip(byte letter) { return ""; }
 		std::string readAbbrev(int whichTable, byte whichAbbrev) const;
+
+		byte firstMulti_;
+		std::string firstMulti(byte b);
+		std::string secondMulti(byte b);
 		static const StoryMemory::story_pointer ADD_ABBREVS_TABLE_LOC = 0x18;
 		StoryMemory::story_pointer getAbbrevsTablePointer() const { return storyMemory_.GetAddressAt(ADD_ABBREVS_TABLE_LOC); }
 	};

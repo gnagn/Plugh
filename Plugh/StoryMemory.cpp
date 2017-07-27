@@ -45,3 +45,18 @@ std::vector<StoryMemory::word> StoryMemory::GetWordsUntil(story_pointer baseAddr
 	}
 	return outWords;
 }
+
+
+StoryMemory::byte StoryCursor::NextByte() 
+{ 
+	auto val = storyMemory_.GetByte(pos_);
+	pos_++;
+	return val;
+}
+
+StoryMemory::word StoryCursor::NextWord()
+{
+	auto val = storyMemory_.GetWord(pos_);
+	pos_ += 2;
+	return val;
+}
